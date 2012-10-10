@@ -547,6 +547,7 @@ module VMC
           versions[application.name()] = ver
         end
         puts versions
+        versions
       end
     end
     class DataServiceManifestApplier
