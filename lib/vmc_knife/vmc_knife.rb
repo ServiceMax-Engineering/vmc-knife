@@ -4,7 +4,7 @@ require 'yaml'
 
 module VMC
   module KNIFE
-    
+
     # Read/Write the JSON for a recipe.
     # Does not map the actual JSON into a new ruby object.
     class Root
@@ -47,9 +47,9 @@ module VMC
       def to_json()
         @wrapped.to_json
       end
-      
+
     end
-    
+
     class Recipe
       attr_accessor :wrapped, :root
       # root: Root
@@ -82,14 +82,14 @@ module VMC
           res << DataService.new(@root, service, name) if regexp =~ name
         end
         res
-        
+
       end
       def to_json()
         @wrapped.to_json
       end
-      
+
     end
-    
+
     # Read/Write the JSON for a dataservice.
     # Does not map the actual JSON into a new ruby object.
     class DataService
@@ -106,16 +106,16 @@ module VMC
       def vendor()
         @wrapped['vendor']
       end
-      
+
       # Returns a vcap manifest that can be used
       # to create a new data-service to vcap's cloud_controller.
       def to_vcap_manifest()
         #TODO
         @wrapped
       end
-      
+
     end
-    
+
     # Read/Write the JSON for an application.
     # Does not map the actual JSON into a new ruby object.
     class Application
@@ -138,7 +138,7 @@ module VMC
       def env()
         ApplicationEnvironment.new @wrapped['env'], self
       end
-      
+
       # Returns a vcap manifest that can be used
       # to push/update an application to vcap's cloud_controller.
       def to_vcap_manifest()
@@ -146,7 +146,7 @@ module VMC
         # if there are differences we will take care of them here.
         @wrapped
       end
-      
+
       # look for the log folder of the deployed app.
       # making the assumption we are on the same file system.
       # will use the paas APIs later.
@@ -201,7 +201,7 @@ module VMC
       end
 
     end
-    
+
     # Read/Write the application environment. a list of strings
     # where the first '=' character separate the key and values.
     class ApplicationEnvironment
@@ -210,7 +210,7 @@ module VMC
         @wrapped = data
         @application = application
       end
-      #Sets a variable. Replaces other environment variables with the 
+      #Sets a variable. Replaces other environment variables with the
       #same name if there is such a thing.
       def set(name,value)
         foundit = false
@@ -245,7 +245,7 @@ module VMC
         @wrapped << "#{name}=#{value}"
       end
     end
-    
+
     class RecipesConfigurationApplier
       attr_accessor :root, :client, :applications, :recipes, :data_services, :opts
       # Select the applications and data-services to configure according to the values
@@ -350,7 +350,7 @@ module VMC
       end
       def info()
 	configure_only=@opts[:configure_only] || false
-        if configure_only                                          
+        if configure_only
           if updates_pending().empty?
             puts "All configuration up to date: true"
             return true
@@ -372,7 +372,7 @@ module VMC
         @applications.each do |application|
           application_updater = ApplicationManifestApplier.new application, @client
           application_updater.delete
-        end 
+        end
         @data_services.each do |data_service|
           data_service_updater = DataServiceManifestApplier.new data_service, @client, @current_services, @current_services_info
           data_service_updater.delete
@@ -538,6 +538,16 @@ module VMC
           `rm #{output_file}` unless @opts[:output_file]
         end
       end
+      def version()
+        versions = {}
+        @applications.each do |application|
+          application_updater = ApplicationManifestApplier.new(application, @client)
+          ver = application_updater.version_installed()
+          puts "#{application.name()} => #{ver}" if VMC::Cli::Config.trace
+          versions[application.name()] = ver
+        end
+        puts versions
+      end
     end
     class DataServiceManifestApplier
       attr_accessor :data_service_json, :client, :current_services, :current_services_info
@@ -564,7 +574,7 @@ module VMC
         end
         @current ||= Hash.new # that would be a new service.
       end
-      
+
       # Only for testing: inject json
       def __set_current(current,current_services=nil,current_services_info=nil)
         @current = current
@@ -612,9 +622,9 @@ module VMC
         end
         raise "vcap does not provide a data-service which vendor is #{searched_vendor}"
       end
-      
-      
-    end    
+
+
+    end
     class ApplicationManifestApplier
       attr_accessor :application_json, :client, :current_name
       # @param application The application object as defined in the SaaS manifest
@@ -634,7 +644,7 @@ module VMC
         @current_name ||= @application_json['old_name']
         @current_name ||= @application_json['name']
       end
-      
+
       def safe_app_info(name)
         begin
           return @client.app_info(name)
@@ -643,19 +653,19 @@ module VMC
           return
         end
       end
-      
+
       def current()
         return @current unless @current.nil?
         @current = safe_app_info(@current_name)
         @current ||= safe_app_info(@application_json['name']) # in case the rename occurred already.
         @current ||= Hash.new # that would be a new app.
       end
-      
+
       # Only for testing: inject json
       def __set_current(current)
         @current = current
       end
-      
+
       def execute()
         diff = updates_pending()
         if diff && diff.size > 0
@@ -667,10 +677,10 @@ module VMC
             puts "Updating #{@application_json['name']} with #{updated_manifest.inspect}"
             @client.update_app(@application_json['name'], updated_manifest)
           end
-                    
+
         end
       end
-      
+
       def version_available()
         return unless @application_json['repository']
         if @application_json['repository']['version_available'] && @application_json['repository']['version_available']['url']
@@ -724,7 +734,7 @@ wget #{wget_args()} --output-document=$version_built_download #{version_availabl
         staged_hash.strip! if staged_hash
         staged_hash
       end
-     
+
       def version_available_file_path(prefix_app_by_default=true)
         # extract the file that contains the version from that tar.gz
         version_available_file=@application_json['repository']['version_installed']['staged_entry'] if @application_json['repository']['version_installed']
@@ -745,10 +755,10 @@ wget #{wget_args()} --output-document=$version_built_download #{version_availabl
             version_available_file=version_available_file['app/'.length..-1]
           elsif version_available_file.start_with?('tomcat/webapp/ROOT/') && !prefix_app_by_default
             version_available_file=version_available_file['tomcat/webapp/ROOT/'.length..-1]
-          end 
+          end
         end
         version_available_file
-      end 
+      end
 
       def cmd_read_version_installed()
         cmd=@application_json['repository']['version_installed']['cmd'] if @application_json['repository']['version_installed']
@@ -802,13 +812,13 @@ wget #{wget_args()} --output-document=$version_built_download #{version_availabl
             if File.exist?(version_available_file)
               `cp #{version_available_file} #{droplet_dot_version}`
             else
-              put "Could not find the installed version file here: here #{droplet} // #{version_available_file}" if VMC::Cli::Config.trace
+              puts "Could not find the installed version file here: here #{droplet} // #{version_available_file}" if VMC::Cli::Config.trace
             end
           end
         end
         installed_version=read_version(droplet_dot_version,cmd)
       end
-      
+
       def info()
         app_id=ccdb_app_id()
         if app_id
@@ -825,7 +835,7 @@ wget #{wget_args()} --output-document=$version_built_download #{version_availabl
         return installed_v == available_v if installed_v && available_v
         return false
       end
-      
+
       def wget_args()
         _wget_args = @application_json['repository']['wget_args']
         if _wget_args.nil?
@@ -837,7 +847,7 @@ wget #{wget_args()} --output-document=$version_built_download #{version_availabl
         end
         wget_args_str
       end
-      
+
       def update(force=false)
         raise "The application #{@application_json['name']} does not exist yet" if current().empty?
         do_delete_download=false
@@ -858,10 +868,10 @@ wget #{wget_args()} --output-document=$version_built_download #{version_availabl
         end
         upload(force,do_delete_download)
       end
-    
+
       def app_download_dir_path()
         "#{ENV['HOME']}/vmc_knife_downloads/#{@application_json['name']}"
-      end 
+      end
       def extract_deployed(force=false)
         installed_v=version_installed()
         unless installed_v
@@ -880,7 +890,7 @@ wget #{wget_args()} --output-document=$version_built_download #{version_availabl
           version_downloaded=read_version(version_file_in_download,cmd_to_read)
 	  if installed_v != version_downloaded
 	    p "The version installed is #{installed_v} and the version ready to be deployed is #{version_downloaded}"
-	    p "Would you like to replace the app to deploy by the one already deployed?" 
+	    p "Would you like to replace the app to deploy by the one already deployed?"
 	    ans = STDIN.gets.chomp
             if ans && ans.capitalize.start_with?('Y')
               FileUtils.rm_rf app_download_dir if File.exists?(app_download_dir)
@@ -890,29 +900,29 @@ wget #{wget_args()} --output-document=$version_built_download #{version_availabl
 	    p "The version installed and the version ready to deploy are identical: #{installed_v}"
           end
         else
-          do_extract = true  
+          do_extract = true
         end
         if do_extract
-          FileUtils.mkdir_p app_download_dir 
+          FileUtils.mkdir_p app_download_dir
           drop_f_p=droplet_file_path()
           p "tar -xzvf #{drop_f_p}"
           `cd /tmp; [ -d drop_app ] && rm -rf drop_app; mkdir drop_app; cd drop_app; tar -xzvf #{drop_f_p}; [ -d app ] && mv app/* #{app_download_dir} || mv tomcat/webapps/ROOT/* #{app_download_dir}`
           p "Done. ls -la #{app_download_dir}"
-          `ls -la #{app_download_dir}` 
-        end 
+          `ls -la #{app_download_dir}`
+        end
         do_extract
-      end 
+      end
       def upload(force=false,do_delete_download=false)
         raise "The application #{@application_json['name']} does not exist yet" if current().empty?
         return unless @application_json['repository']
         url = @application_json['repository']['url']
-        
+
         Dir.chdir(ENV['HOME']) do
           tmp_download_filename="_download_.zip"
           app_download_dir=app_download_dir_path()
           `rm -rf #{app_download_dir}` if File.exist?("#{app_download_dir}") && do_delete_download
           `rm -rf #{app_download_dir}` if File.exist? "#{app_download_dir}/#{tmp_download_filename}"
-          
+
           FileUtils.mkdir_p app_download_dir
           Dir.chdir(app_download_dir) do
             if Dir.entries(Dir.pwd).size == 2 #empty directory ?
@@ -925,7 +935,7 @@ wget #{wget_args()} --output-document=$version_built_download #{version_availabl
                   branch='master'
                 end
                 `git pull origin #{branch}`
-              else                
+              else
                 begin
                   wget_args_str = wget_args()
                   #`wget #{wget_args_str} --output-document=#{tmp_download_filename} #{url}`
@@ -965,7 +975,7 @@ wget #{wget_args()} --output-document=$version_built_download #{version_availabl
           end
         end
       end
- 
+
       def upload_app_bits()
         Dir.chdir(app_download_dir_path()) do
 puts "upload_app_bits in #{app_download_dir_path()}"
@@ -985,10 +995,10 @@ puts "upload_app_bits in #{app_download_dir_path()}"
             VMC::Cli::Config.trace = ori_trace
           end
         end
-      end     
+      end
 
       def patch(force=false)
-        app_download_dir=app_download_dir_path() 
+        app_download_dir=app_download_dir_path()
         app_was_extracted = extract_deployed(force)
         p "Application ready to be patched in #{app_download_dir}"
         if VMC::Cli::Config.trace || app_was_extracted
@@ -998,21 +1008,21 @@ puts "upload_app_bits in #{app_download_dir_path()}"
         end
         upload_app_bits()
       end
- 
+
       def start()
         #raise "The application #{@application_json['name']} does not exist yet" if current().empty?
         return if current().empty? || current[:state] == 'STARTED'
         current[:state] = 'STARTED'
         client.update_app(@application_json['name'], current())
       end
-      
+
       def stop()
         #raise "The application #{@application_json['name']} does not exist yet" if current().empty?
         return if current().empty? || current[:state] == 'STOPPED'
         current[:state] = 'STOPPED'
         client.update_app(@application_json['name'], current())
       end
-      
+
       def delete()
         if current().empty?
           puts "The application #{@application_json['name']} does not exist yet" if VMC::Cli::Config.trace
@@ -1047,7 +1057,7 @@ puts "upload_app_bits in #{app_download_dir_path()}"
         end
         new_app_manifest
       end
-      
+
       # Returns a json object where we see the differences.
       def updates_pending()
         name = update_name_pending()
@@ -1065,7 +1075,7 @@ puts "upload_app_bits in #{app_download_dir_path()}"
         updates['meta'] = meta if meta
         updates unless updates.empty?
       end
-      
+
       def update_name_pending()
         curr_name=current[:name] || current['name']
         if curr_name.nil?
@@ -1128,13 +1138,13 @@ puts "upload_app_bits in #{app_download_dir_path()}"
         old_debug = old_meta[:debug] || old_meta['debug']
         new_debug = new_meta['debug']
         debug_change = "#{old_debug} => #{new_debug}" if old_debug != new_debug
-        
+
         old_restage_on_service_change = old_meta[:restage_on_service_change]
         old_restage_on_service_change = old_meta['restage_on_service_change'] unless old_restage_on_service_change == false
         old_restage_on_service_change = old_restage_on_service_change.to_s unless old_restage_on_service_change.nil?
         new_restage_on_service_change = new_meta['restage_on_service_change']
         restage_on_service_change_change = "#{old_restage_on_service_change} => #{new_restage_on_service_change}" if old_restage_on_service_change != new_restage_on_service_change
-        
+
         return if debug_change.nil? && restage_on_service_change_change.nil?
         return { "debug" => debug_change } if restage_on_service_change_change.nil?
         return { "restage_on_service_change" => restage_on_service_change_change } if debug_change.nil?
@@ -1157,7 +1167,7 @@ puts "upload_app_bits in #{app_download_dir_path()}"
         return { "add" => add, "remove" => remove }
       end
     end
-    
+
     # This is really a server-side vcap admin feature.
     class VCAPUpdateCloudControllerConfig
       def initialize(uri, cloud_controller_config=nil)
@@ -1198,7 +1208,7 @@ puts "upload_app_bits in #{app_download_dir_path()}"
       def execute()
         @changed = false
         @changed_gateways = Array.new
-        # look for the line that starts with external_uri: 
+        # look for the line that starts with external_uri:
         # replace it with the new uri if indeed there was a change.
         lines = IO.readlines @config
         File.open(@config, "w") do |file|
@@ -1240,7 +1250,7 @@ puts "upload_app_bits in #{app_download_dir_path()}"
         @changed
       end
     end
-    
+
     # This is really a server-side feature.
     # Replace the 127.0.0.1 localhost #{old_uri} with the new uri
     class VCAPUpdateEtcHosts
@@ -1287,7 +1297,7 @@ puts "upload_app_bits in #{app_download_dir_path()}"
       def execute()
         return unless update_pending
         @changed = false
-        # look for the line that starts with external_uri: 
+        # look for the line that starts with external_uri:
         # replace it with the new uri if indeed there was a change.
         if true
           # use sudo.
@@ -1313,7 +1323,7 @@ puts "upload_app_bits in #{app_download_dir_path()}"
         @changed
       end
     end
-    
+
     # This is really a server-side feature.
     # This is deprecated; use the dns_publisher vcap module instead.
     # Regenerates the urls to publish as aliases.
@@ -1397,6 +1407,6 @@ puts "upload_app_bits in #{app_download_dir_path()}"
         return length_already != allall.length
       end
     end
-    
+
   end # end of KNIFE
 end

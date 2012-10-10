@@ -8,17 +8,17 @@ require 'cli' #this is the cli from vmc.
 # as well as a short declaration of the services expected and their nature.
 # Usage: edit the json recipe.
 # vmc_knife configure-applications
-# 
+#
 # Also bundles utilities to reconfigure the hostname of the cloud_controller and the gateways accordingly:
 # vmc_knife configure-vcap
 # and publish the urls in the deployed apps with zeroconf on ubuntu (avahi)
 # vmc configure-vcap-mdns
 class VMC::Cli::KnifeRunner < VMC::Cli::Runner
-  
+
   def parse_command!
     # just return if already set, happends with -v, -h
     return if @namespace && @action
-    
+
     verb = @args.first
     case verb
 
@@ -243,11 +243,19 @@ class VMC::Cli::KnifeRunner < VMC::Cli::Runner
       puts "Updating vmc-knife"
       `cd /tmp; [ -d "vmc-knife" ] && rm -rf vmc-knife; git clone https://github.com/hmalphettes/vmc-knife.git; cd vmc-knife; gem build vmc_knife.gemspec; gem install vmc_knife`
       exit 0
+    when 'app-version'
+      usage('vmc_knife app-version [<applications_regexp>]')
+      @args.shift # consumes the argument.
+      if @args.size <= 2
+        set_cmd(:knifeapps, :applications_version, @args.size)
+      else
+        set_cmd(:knifeapps, :applications_version, @args.size) # too many
+      end
     when 'help'
       display "vmc_knife expand-manifest|login|start/stop/restart-apps|upload-apps|configure-all|configure-recipes|configure-apps|configure-services|info-configure-apps|info-apps|update-apps|patch-apps|running-apps|wait-till-running-apps|delete-app/data/all|configure-vcap|configure-vcap-mdns|configure-vcap-etc-hosts|data-shell|data-export/import/shrink/drop|logs-less|less|tail|logs-all/apps/vcap|update-self [<manifest_path>]"
     else
       super
     end
   end
-  
+
 end

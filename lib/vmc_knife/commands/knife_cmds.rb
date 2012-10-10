@@ -1,7 +1,7 @@
 # Commands for vmc_knife.
 
 module VMC::KNIFE::Cli
-  
+
   #loads the manifest file.
   #when the path is not specified, look in the current directory.
   #when the path is a directory, look for the first json file it can find.
@@ -36,9 +36,9 @@ module VMC::Cli::Command
 
   class Knife < Base
     include VMC::KNIFE::Cli
-    
+
     # expands the json manifest. outputs it in the destination path.
-    
+
     def expand_manifest(manifest_file_path=ENV['VMC_KNIFE_DEFAULT_RECIPE'], destination=nil)
       res = VMC::KNIFE::JSON_EXPANDER.expand_json manifest_file_path
       if destination
@@ -49,11 +49,11 @@ module VMC::Cli::Command
         File.open(destination, 'w') {|f| f.write(JSON.pretty_generate(res)) }
       else
         STDERR.puts "Expanding the manifest #{manifest_file_path}"
-        STDOUT.puts JSON.pretty_generate(res) 
+        STDOUT.puts JSON.pretty_generate(res)
       end
-      
+
     end
-    
+
     # updates the cloud_controller
     def configure_cloud_controller(cloud_controller_yml=nil,manifest_file_path_or_uri=nil)
       __update(manifest_file_path_or_uri,cloud_controller_yml,VMC::KNIFE::VCAPUpdateCloudControllerConfig,"cloud_controller")
@@ -61,7 +61,7 @@ module VMC::Cli::Command
     # updates /etc/hosts
     def configure_etc_hosts(etc_hosts=nil,manifest_file_path=nil,client=nil)
       #__update(manifest_file_path_or_uri,etc_hosts,VMC::KNIFE::VCAPUpdateEtcHosts,"/etc/hosts")
-      
+
       # this will configure /etc/hosts with the urls of your applications as well as the cloudcontroller.
       # it is not be necessary if avahi is correctly configured on your VM.
       unless manifest_file_path.nil?
@@ -92,7 +92,7 @@ module VMC::Cli::Command
       update_aliases.do_exec = true
       update_aliases.execute
     end
-    
+
     def configure_all(manifest_file_path_or_uri=nil)
       begin
         display "Stop applications ..."
@@ -144,30 +144,30 @@ module VMC::Cli::Command
     end
 
   end
-  
+
   class Knifemisc < Misc
     include VMC::KNIFE::Cli
-    
+
     # configures the target and login according to the info in the manifest.
     def login(manifest_file_path=nil)
       man  = load_manifest(manifest_file_path)
       target_url = man['target']
-      raise "No target defined in the manifest #{@manifest_path}" if target_url.nil? 
+      raise "No target defined in the manifest #{@manifest_path}" if target_url.nil?
       puts "set_target #{target_url}"
       set_target(target_url)
-      
+
       email = man['email']
       password = man['password']
       @options[:email] = email if email
       @options[:password] = password if password
-      
+
       tries ||= 0
       # login_and_save_token:
-      
+
       puts "login with #{email} #{password}"
       token = client.login(email, password)
       VMC::Cli::Config.store_token(token)
-      
+
     rescue VMC::Client::TargetError
       display "Problem with login, invalid account or password.".red
       retry if (tries += 1) < 3 && prompt_ok && !@options[:password]
@@ -176,11 +176,11 @@ module VMC::Cli::Command
       display "Problem with login, #{e}, try again or register for an account.".red
       display e.backtrace
       exit 1
-      
+
     end
-    
+
   end
-  
+
   class Knifeapps < Apps
     include VMC::KNIFE::Cli
 
@@ -195,7 +195,7 @@ module VMC::Cli::Command
     def configure_recipes(recipe_names_regexp=nil,manifest_file_path=nil)
       configure(recipe_names_regexp,nil,nil,manifest_file_path)
     end
-              
+
     # Configure the applications according to their manifest.
     # The parameters are related to selecting a subset of the applications to configure.
     # nil means all apps for all recipes found in the manifest are configured.
@@ -284,7 +284,7 @@ module VMC::Cli::Command
         end
       end
       recipe_configuror(:shell,nil,nil,data_names_regexp,manifest_file_path,
-                        {:file_name=>file_name, :data_cmd=>cmd, 
+                        {:file_name=>file_name, :data_cmd=>cmd,
                          :app_name=>app_name, :data_only=>true,
                          :single_service=>true})
     end
@@ -334,7 +334,11 @@ module VMC::Cli::Command
                         {:apps_only=>true, :log_apps=>true, :log_vcap=>false, :logs_shell=>"tail",
                          :log_files_glob=>log_files_glob})
     end
-    
+    def applications_version(app_names_regexp=nil,manifest_file_path=nil)
+      recipe_configuror(:version,nil,app_names_regexp,nil,manifest_file_path,
+                        {:apps_only=>true})
+    end
+
     def recipe_configuror(method_sym_name,recipes_regexp=nil,app_names_regexp=nil,service_names_regexp=nil,manifest_file_path=nil,opts=nil)
       man = load_manifest(manifest_file_path)
       recipes_regexp = as_regexp(recipes_regexp)
@@ -347,7 +351,7 @@ module VMC::Cli::Command
       method_object = configurer.method(method_sym_name)
       method_object.call
     end
-    
+
     def as_regexp(arg, strict=false)
       if arg != nil && arg.kind_of?(String) && !arg.strip.empty?
         if strict && Regexp.quote(arg) == arg
@@ -357,7 +361,7 @@ module VMC::Cli::Command
         end
       end
     end
-    
+
   end
-  
+
 end
