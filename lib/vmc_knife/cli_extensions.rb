@@ -241,7 +241,7 @@ class VMC::Cli::KnifeRunner < VMC::Cli::Runner
     when 'update-self'
       usage('vmc_knife update-self')
       puts "Updating vmc-knife"
-      `cd /tmp; [ -d "vmc-knife" ] && rm -rf vmc-knife; git clone https://github.com/hmalphettes/vmc-knife.git; cd vmc-knife; gem build vmc_knife.gemspec; gem install vmc_knife`
+      `cd /tmp; [ -d "vmc-knife" ] && rm -rf vmc-knife; git clone https://github.com/intalio/vmc-knife.git; cd vmc-knife; gem build vmc_knife.gemspec; gem install vmc_knife`
       exit 0
     when 'app-version'
       usage('vmc_knife app-version [<applications_regexp>]')
