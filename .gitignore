@@ -12,3 +12,4 @@ ci-working-dir
 *.swp
 *.pid
 *.kate-swp
+intalio_recipe.json
