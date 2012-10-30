@@ -20,7 +20,7 @@ load the cloudfoundry profile and install the gem:
 
 Or to install from source:
 
-    git clone https://github.com/hmalphettes/vmc-knife.git
+    git clone https://github.com/intalio/vmc-knife.git
     cd vmc-knife
     gem build vmc_knife.gemspec
     gem install vmc_knife
