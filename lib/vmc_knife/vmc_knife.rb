@@ -114,6 +114,29 @@ module VMC
         @wrapped
       end
 
+      def log(target_folder)
+        if is_postgresql()
+          postgres_log_folder = "/var/log/postgresql"
+          pg_target_dir = "#{target_folder}/postgresql"
+          FileUtils.mkdir(pg_target_dir)
+          Dir.glob(File.join(postgres_log_folder, "*")).each do |f|
+            fname="#{File.basename(f)}"
+            FileUtils.cp(File.join(postgres_log_folder, fname), pg_target_dir)
+          end
+        end
+
+        if is_mongodb()
+          mongo_log_folder = "/var/vcap/services/mongodb/logs"
+          mg_target_dir = "#{target_folder}/mongodb"
+          FileUtils.mkdir(mg_target_dir)
+          Dir.glob(File.join(mongo_log_folder, "*")).each do |f|
+            fname="#{File.basename(f)}"
+            FileUtils.cp_r(File.join(mongo_log_folder, fname), mg_target_dir)
+          end
+
+        end
+      end
+
     end
 
     # Read/Write the JSON for an application.
@@ -493,6 +516,13 @@ module VMC
           @applications.each do |application|
             application.log(File.join(output_folder, 'apps'))
           end
+
+          svc_dir = File.join(output_folder, 'services')
+          FileUtils.mkdir(svc_dir)
+          @data_services.each do | ds |
+            ds.log(svc_dir)
+          end
+
         end
         if log_vcap
           if ENV['CLOUD_FOUNDRY_CONFIG_PATH'] && File.exist?(ENV['CLOUD_FOUNDRY_CONFIG_PATH'])
