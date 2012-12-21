@@ -174,8 +174,7 @@ module VMC
       # making the assumption we are on the same file system.
       # will use the paas APIs later.
       def log(folder,log_file_glob=nil)
-        home = ENV['HOME'] || '/home/ubuntu'
-        deployed_apps_folder="#{home}/cloudfoundry/deployed_apps"
+        deployed_apps_folder="/home/ubuntu/cloudfoundry/deployed_apps"
         log_file_glob ||= "logs/*"
         if File.exist?(deployed_apps_folder)
           folder_nb=0
@@ -193,7 +192,7 @@ module VMC
       # look for the most recent folder where we can find the stdout file.
       # fork to the shell with the 'less' command to display the contents of the file.
       def log_shell(shell_cmd=nil,log_file_glob=nil)
-        deployed_apps_folder="#{ENV['HOME']}/cloudfoundry/deployed_apps"
+        deployed_apps_folder="/home/ubuntu/cloudfoundry/deployed_apps"
         shell_cmd ||= "less"
         log_file_glob ||= File.join("logs","stdout.log")
         if File.exist?(deployed_apps_folder)
