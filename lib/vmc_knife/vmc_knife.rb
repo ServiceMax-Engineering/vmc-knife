@@ -174,7 +174,8 @@ module VMC
       # making the assumption we are on the same file system.
       # will use the paas APIs later.
       def log(folder,log_file_glob=nil)
-        deployed_apps_folder="#{ENV['HOME']}/cloudfoundry/deployed_apps"
+        home = ENV['HOME'] || '/home/ubuntu'
+        deployed_apps_folder="#{home}/cloudfoundry/deployed_apps"
         log_file_glob ||= "logs/*"
         if File.exist?(deployed_apps_folder)
           folder_nb=0
