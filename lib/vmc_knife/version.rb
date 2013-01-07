@@ -2,7 +2,7 @@ module VMC
   module KNIFE
     module Cli
       # This version number is used as the RubyGem release version.
-      VERSION = '0.0.48'
+      VERSION = '0.0.49'
     end
   end
 end

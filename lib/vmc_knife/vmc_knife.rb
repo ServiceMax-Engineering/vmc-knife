@@ -502,7 +502,7 @@ module VMC
         end
         name_prefix||="cflogs-"
         parent_output_folder||="/tmp"
-        name="#{name_prefix}#{Time.now.strftime("%Y%m%d-%H%M")}"
+        name="#{name_prefix}#{Time.now.strftime("%Y%m%d-%H%M%S")}"
         output_file||="#{name}.zip"
         output_folder="#{parent_output_folder}/#{name}"
         FileUtils.rm_rf(output_folder) if File.exist? output_folder
