@@ -309,7 +309,7 @@ module VMC
           
           if is_unzipped
             #`rm #{basename}`
-            files = Dir.glob("*.sql") if is_postgresql
+            files = Dir.glob(["*.sql", "*.dump"]) if is_postgresql
             files = Dir.glob("**/*.bson") if is_mongodb
             files ||= Dir.glob("*")
             raise "Can't find the db-dump file." if files.empty?
@@ -367,15 +367,15 @@ module VMC
         if is_postgresql
           if file.nil?
             extension = @wrapped['director']['file_extension'] if @wrapped['director']
-            extension ||= "sql"
             file = "#{name()}.#{extension}"
           else
             unless File.exists?(File.dirname(file))
               raise "The output folder #{File.dirname(file)} does not exist."
             end
           end
-          archive_unzipped=file
-          archive_unzipped="#{name()}.sql" unless /\.sql$/ =~ extension
+          extension ||= "dump"
+          archive_unzipped = "#{name()}.#{extension}"
+          #archive_unzipped="#{name()}.sql" unless /\.sql$/ =~ extension
           `touch #{archive_unzipped}`
           unless File.exists? archive_unzipped
             raise "Unable to create the file #{archive_unzipped}"
@@ -385,7 +385,7 @@ module VMC
           #sudo -u postgres env PGPASSWORD=intalio DBNAME=intalio DUMPFILE=intalio_dump.sql pg_dump --format=p --file=$DUMPFILE --no-owner --clean --blobs --no-acl --oid --no-tablespaces $DBNAME
           #sudo -u postgres env PGPASSWORD=$PGPASSWORD DUMPFILE=$DUMPFILE pg_dump --format=p --file=$DUMPFILE --no-owner --clean --blobs --no-acl --oid --no-tablespaces $DBNAME
 
-          cmd = VMC::KNIFE.pg_connect_cmd(credentials(app_name), 'pg_dump', false, "--format=p --file=#{archive_unzipped} --no-owner --clean --oids --blobs --no-acl --no-privileges --no-tablespaces")
+          cmd = VMC::KNIFE.pg_connect_cmd(credentials(app_name), 'pg_dump', false, "--format=c --file=#{archive_unzipped} --no-owner --clean --oids --blobs --no-acl --no-privileges --no-tablespaces")
           puts cmd
           puts `#{cmd}`
           
