@@ -1,67 +1,212 @@
 {
-  "sub_domain" : "intalio.local",
-  "sub_domain_local" : "intalio.local",
-  "sub_domain_local_unique" : "intalio-#{ip_seed}.local",
-  "sub_domains" : [ "#{this['sub_domain']}"],
-  "sub_domains_all" : [ "#{this['sub_domain']}","#{this['sub_domain_local']}","#{this['sub_domain_local_unique']}"],
-  "target" : "api.#{this['sub_domain']}",
-  "email" : "bob@example.com",
-  "password" : "secret",
-  "recipes":
-  [{
-     "name" : "intalio_recipe",
-     "data_services" :
-     {
-        "pg_intalio" :
-        {
-            "name" : "pg_intalio",
-            "vendor" : "postgresql"
+  "sub_domain_local": "intalio.local",
+  "sub_domains_multiple": [
+    "#{this['sub_domain']}",
+    "#{this['sub_domain_local']}",
+    "#{this['sub_domain_local_unique']}"
+  ],
+  "sub_domain_local_unique": "intalio-#{ip_seed}.local",
+  "logs": {
+    "vcap_component_name_glob": "*",
+    "other_logs": {
+      "registration": "/home/ubuntu/intalio/registration_app/logs/*.log"
+    },
+    "max_size_vcap": "10M",
+    "destination": "/tmp",
+    "max_size_app": "10M"
+  },
+  "download_server": "https://IntalioLab:Create@downloads.intalio.com/",
+  "build_type": "dev",
+  "target": "api.intalio.priv:9022",
+  "sub_domain": "intalio.local",
+  "lucene_indexes_folder": "/home/ubuntu/intalio/lucene_indexes",
+  "version_available_template": {
+    "url": "./version_built.properties",
+    "archive_cmd_id": "grep artifact= $version_built_download | cut -d '=' -f2",
+    "cmd": "grep version= $version_built_download | cut -d '=' -f2"
+  },
+  "password": "gold",
+  "recipes": [
+    {
+      "name": "intalio_recipe",
+      "data_services": {
+        "mg_intalio": {
+          "vendor": "mongodb",
+          "name": "mg_intalio",
+          "director": {
+            "backup": "true"
+          }
         },
-        "mg_intalio" :
-        {
-            "name" : "mg_intalio",
-            "vendor" : "mongodb"
+        "pg_intalio": {
+          "vendor": "postgresql",
+          "name": "pg_intalio",
+          "director": {
+            "backup": "true",
+            "bound_app": "intalio",
+            "import_url": "__disabled__#{this['download_server']}/p2repo/db-iridium/pg_intalio.sql.tar.gz"
+          }
         }
-     },
-     "applications":
-     {
-        "oauth" :
-        {
-           "name" : "oauth",
-           "uris" : [ "#{this['sub_domains'].uniq.collect do |x| 'oauth.' + x end }" ],
-           "uris_old" : ["oauth.#{this['sub_domain']}"],
-           "staging": { "stack" : "node", "model" : "nodejs" },
-           "resources": {"memory":64},
-           "services": "#{this['recipes'][0]['applications']['intalio']['services']}"
+      },
+      "applications": {
+        "cdn": {
+          "repository": {
+            "url": "#{this['download_server']}/#{this['build_type']}/cdn/neocore-cdn.zip",
+            "version_available": "#{this['version_available_template']}"
+          },
+          "resources": {
+            "memory": 64
+          },
+          "env": [
+            "STATIC_HOME=#{this['static_home']}"
+          ],
+          "name": "cdn",
+          "uris": [
+            "#{this['sub_domains'].uniq.collect do |x| (/.local$/=~x ? '' : this['dns_provider']['dns_prefix']) + 'cdn.' + x  end[0] }"
+          ],
+          "staging": {
+            "model": "node",
+            "stack": "node"
+          },
+          "meta": {
+            "restage_on_service_change": "false"
+          }
         },
-        "intalio" :
-        {
-           "name" : "intalio",
-           "uris" : [ "#{this['sub_domains']}" ],
-           "staging": { "stack" : "java", "model" : "spring" },
-           "resources":{"memory":3072},
-           "services": ["pg_intalio","mg_intalio"],
-           "env": [ "INTALIO_AUTH=#{this['recipes'][0]['applications']['oauth']['uris'].uniq.collect do |x| 'http://' + x end.join(',')}",
-                    "JAVA_OPTS=-XX:MaxPermSize\=384m" ],
-           "repository":
-           {
-              "version":"1.0.0.123",
-              "url":"http://#{current['user']}:#{current['password']}@thedownload.com/download/it/#{current['version']}/intalio.war",
-              "user":"bob", "password":"secret"
-           }
+        "intalio": {
+          "repository": {
+            "url": "#{File.join(this['download_server'],this['build_type'],'intalio')}/#{this['intalio_archive_filename']}",
+            "post_download_script": [
+              "[ -d #{this['boot_data']} ] && rm -rf #{this['boot_data']}",
+              "mkdir -p #{this['boot_data']}; cd #{this['boot_data']}",
+              "BOOT_URL=#{this['boot_data_url']}",
+              "[ -n $(echo $BOOT_URL | egrep ^./.*)'' ] && BOOT_URL=#{this['download_server']}/#{this['build_type']}/intalio/#{this['boot_data_url']}",
+              "wget $BOOT_URL --output-document=__data_download.zip",
+              "unzip __data_download.zip || exit 121; rm __data_download.zip"
+            ],
+            "version_installed": {
+              "staged_entry": "#{this['intalio_archive_filename'].end_with?('war') ? 'tomcat/webapps/ROOT/version_built.properties' : 'app/version_built.properties'}"
+            },
+            "version_available": "#{this['version_available_template']}"
+          },
+          "env": [
+            "INTALIO_PLATFORM=#{this['sub_domains'].uniq.collect do |x| '//' + (/.local$/=~x ? '' : this['dns_provider']['dns_prefix']) + x  end.join(',') }",
+            "INTALIO_AUTH=//#{this['recipes'][0]['applications']['oauth']['uris'][0]}",
+            "INTALIO_ADMIN=//#{this['recipes'][0]['applications']['admin']['uris'][0]}",
+            "JAVA_OPTS=-XX:MaxPermSize=384m -Dcom.mchange.v2.log.MLog=com.mchange.v2.log.FallbackMLog -Dcom.mchange.v2.log.FallbackMLog.DEFAULT_CUTOFF_LEVEL=WARNING -Dfile.encoding=UTF-8 -Dlogback.root.level=WARN#{this['intalio_archive_filename'].end_with?('war') ? '' : ' -Dlogback.appender=FILE_CF'}",
+            "STATIC_HOME=#{this['static_home']}",
+            "INTALIO_UPDATE_AVAILABLE_VERSION_URL=#{this['intalio_update_available_version_url']}",
+            "INTALIO_BOOT_DATA=#{this['boot_data']}",
+            "INTALIO_LUCENE_INDEX=#{this['lucene_indexes_folder']}"
+          ],
+          "resources": {
+            "memory": "3072"
+          },
+          "name": "intalio",
+          "services": [
+            "#{this['recipes'][0]['data_services']['pg_intalio']['name']}",
+            "#{this['recipes'][0]['data_services']['mg_intalio']['name']}"
+          ],
+          "uris": [
+            "#{this['sub_domains'].reverse.uniq.collect do |x| (/.local$/=~x ? '' : this['dns_provider']['dns_prefix']) + x  end[0] }"
+          ],
+          "staging": {
+            "model": "#{this['intalio_archive_filename'].end_with?('war') ? 'spring' : 'java_start'}",
+            "stack": "java"
+          },
+          "meta": {
+            "restage_on_service_change": "false"
+          }
         },
-        "admin" :
-        {
-           "name" : "admin",
-           "uris" : [ "#{this['sub_domains'].collect do |x| 'admin.' + x end }" ],
-           "uris_old" : ["admin.#{this['sub_domain']}"],
-           "staging": { "stack" : "ruby19", "model" : "sinatra" },
-           "resources": {"memory":128},
-           "services": "#{this['recipes'][0]['applications']['intalio']['services']}",
-           "env": [ "INTALIO_AUTH=#{this['recipes'][0]['applications']['oauth']['uris'].uniq.collect do |x| 'http://' + x end.join(',')}" ],
-           "env_old": [ "INTALIO_AUTH=http://#{this['recipes'][0]['applications']['oauth']['uris'].uniq.join(',')}" ]
+        "admin": {
+          "repository": {
+            "url": "#{this['download_server']}/#{this['build_type']}/admin/cf-admin.zip",
+            "version_available": "#{this['version_available_template']}"
+          },
+          "env": [
+            "INTALIO_AUTH=//#{this['recipes'][0]['applications']['oauth']['uris'][0]}",
+            "INTALIO_PLATFORM=#{this['sub_domains'].uniq.collect do |x| '//' + (/.local$/=~x ? '' : this['dns_provider']['dns_prefix']) + x  end.join(',') }",
+            "DEFAULT_APP_DOMAIN=#{this['sub_domain']}",
+            "cf_target=#{this['target']}",
+            "DEFAULT_DOWNLOAD_URL=#{this['recipes'][0]['applications']['intalio']['repository']['url']}",
+            "cf_user=#{this['email']}",
+            "cf_password=#{this['password']}",
+            "CLOUD_FOUNDRY_CONFIG_PATH=#{ENV['CLOUD_FOUNDRY_CONFIG_PATH']||'/home/ubuntu/cloudfoundry/config'}",
+            "STATIC_HOME=#{this['static_home']}",
+            "INTALIO_CDN=//#{this['recipes'][0]['applications']['cdn']['uris'][0]}",
+            "INTALIO_UPDATE_AVAILABLE_VERSION_URL=#{this['intalio_update_available_version_url']}",
+            "INTALIO_VERSION_FILE=#{this['intalio_archive_filename'].end_with?('war') ? 'tomcat/webapps/ROOT/version_built.properties' : 'app/version_built.properties'}",
+            "INTALIO_BOOT_DATA=#{this['boot_data']}",
+            "INTALIO_DATA_ARCHIVE=#{this['boot_data_url'].split('/').last}",
+            "INTALIO_LUCENE_INDEX=#{this['lucene_indexes_folder']}"
+          ],
+          "resources": {
+            "memory": 128
+          },
+          "name": "admin",
+          "services": [
+            "#{this['recipes'][0]['data_services']['pg_intalio']['name']}",
+            "#{this['recipes'][0]['data_services']['mg_intalio']['name']}"
+          ],
+          "uris": [
+            "#{this['sub_domains'].uniq.collect do |x| (/.local$/=~x ? '' : this['dns_provider']['dns_prefix']) + 'admin.' + x  end[0] }"
+          ],
+          "staging": {
+            "model": "sinatra",
+            "stack": "ruby19"
+          },
+          "meta": {
+            "restage_on_service_change": "false"
+          }
+        },
+        "oauth": {
+          "repository": {
+            "url": "#{this['download_server']}/#{this['build_type']}/oauth/neocore-oauth.zip",
+            "version_available": "#{this['version_available_template']}"
+          },
+          "resources": {
+            "memory": 64
+          },
+          "env": [
+            "INTALIO_PLATFORM=#{this['sub_domains'].uniq.collect do |x| '//' + (/.local$/=~x ? '' : this['dns_provider']['dns_prefix']) + x  end.join(',') }",
+            "STATIC_HOME=#{this['static_home']}",
+            "INTALIO_CDN=//#{this['recipes'][0]['applications']['cdn']['uris'][0]}"
+          ],
+          "name": "oauth",
+          "services": [
+            "#{this['recipes'][0]['data_services']['pg_intalio']['name']}",
+            "#{this['recipes'][0]['data_services']['mg_intalio']['name']}"
+          ],
+          "uris": [
+            "#{this['sub_domains'].uniq.collect do |x| (/.local$/=~x ? '' : this['dns_provider']['dns_prefix']) + 'oauth.' + x  end[0] }"
+          ],
+          "staging": {
+            "model": "node",
+            "stack": "node"
+          },
+          "meta": {
+            "restage_on_service_change": "false"
+          }
         }
-     }
-  }]
-  
+      }
+    }
+  ],
+  "intalio_archive_filename": "intalio.tar.gz",
+  "default_user": "",
+  "intalio_update_available_version_url": "#{this['download_server']}/#{this['build_type']}/intalio/version.xml",
+  "boot_data_url": "./data_internal.zip",
+  "dns_provider": {
+    "dns_gateway_url": "https://vanadium.cloud.intalio.com/route53/bind",
+    "dns_prefix": "",
+    "dns_published_ip": "",
+    "vm_token": "",
+    "vm_password": ""
+  },
+  "email": "system@intalio.com",
+  "sub_domains": [
+    "#{this['sub_domain']}"
+  ],
+  "boot_data": "/home/ubuntu/intalio/boot_data",
+  "static_home": "/home/ubuntu/intalio/cdn/resources",
+  "version_installed_template": {
+    "staged_entry": "version_built.properties"
+  }
 }
