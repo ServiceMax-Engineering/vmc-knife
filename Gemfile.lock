@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    vmc_knife (0.0.45)
+    vmc_knife (0.0.50)
       rest-client (>= 1.6.1, < 1.7.0)
       vmc (~> 0.3.18)
 
