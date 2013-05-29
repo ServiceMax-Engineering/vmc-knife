@@ -20,9 +20,9 @@ describe 'VMC::KNIFE::JSON_EXPANDER' do
   it 'should evaluate the ruby embedded in the json values' do
     recipe = spec_asset('tests/intalio_recipe.json')
     exp_recipe = expand_json(recipe)
-    exp_recipe['target'].should == "api.intalio.priv:9022"
-    exp_recipe['recipes'][0]['applications']['admin']['env'][0].should == "INTALIO_AUTH=//oauth.#{exp_recipe['sub_domain']}"
-    exp_recipe['recipes'][0]['applications']['intalio']['repository']['url'].should == "https://IntalioLab:Create@downloads.intalio.com/dev/intalio/intalio.tar.gz"
+    exp_recipe['target'].should == "api.#{exp_recipe['sub_domain']}"
+    exp_recipe['recipes'][0]['applications']['admin']['env'][0].should == "INTALIO_AUTH=http://oauth.#{exp_recipe['sub_domain']}"
+    exp_recipe['recipes'][0]['applications']['intalio']['repository']['url'].should == "http://bob:secret@thedownload.com/download/it/1.0.0.123/intalio.war"
     exp_recipe['recipes'][0]['applications']['intalio']['services'].should == ["pg_intalio", "mg_intalio"]
     exp_recipe['recipes'][0]['applications']['oauth']['services'].should == ["pg_intalio", "mg_intalio"]
     exp_recipe['recipes'][0]['applications']['oauth']['uris'].should == ["oauth.intalio.local"]
