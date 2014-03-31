@@ -345,6 +345,7 @@ module VMC::Cli::Command
       app_names_regexp = as_regexp(app_names_regexp)
       opts ||= {}
       service_names_regexp = as_regexp(service_names_regexp, opts[:single_service])
+      raise VMC::Client::AuthError unless client.logged_in?
       configurer = VMC::KNIFE::RecipesConfigurationApplier.new(man, client,
                                                                recipes_regexp, app_names_regexp,
                                                                service_names_regexp, opts)
