@@ -975,7 +975,7 @@ wget #{wget_args()} --output-document=$version_built_download #{version_availabl
  wget #{wget_args_str} --output-document=#{tmp_download_filename} #{url} --output-file=/tmp/wget_#{@application_json['name']}`
                   raise "Unable to download #{url}" unless $? == 0
                   if /\.tgz$/ =~ url || /\.tar\.gz$/ =~ url
-                    `tar zxvf #{tmp_download_filename}`
+                    `tar zxvf #{tmp_download_filename} --strip 1`
                   elsif /\.tar$/ =~ url
                     `tar xvf #{tmp_download_filename}`
                   else
@@ -998,7 +998,7 @@ wget #{wget_args()} --output-document=$version_built_download #{version_availabl
               p "Executing the post_download script : #{post_download_script}"
               success = system(post_download_script)
               p "Done executing the post_download script succcess #{success}"
-              exit unless success
+              #exit unless success
             end
             upload_app_bits()
           end
@@ -1007,7 +1007,7 @@ wget #{wget_args()} --output-document=$version_built_download #{version_availabl
 
       def upload_app_bits()
         Dir.chdir(app_download_dir_path()) do
-puts "upload_app_bits in #{app_download_dir_path()}"
+          puts "upload_app_bits in #{app_download_dir_path()}"
           Dir.chdir(@application_json['repository']['sub_dir']) if @application_json['repository']['sub_dir']
           tmp_git = "/tmp/#{@application_json['name']}.git"
           if File.exists? ".git"
