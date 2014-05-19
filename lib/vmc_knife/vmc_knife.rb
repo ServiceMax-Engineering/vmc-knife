@@ -981,6 +981,9 @@ wget #{wget_args()} --output-document=$version_built_download #{version_availabl
                   else
                     `unzip #{tmp_download_filename}`
                   end
+
+                  # also download the version file
+                  `wget -N #{File.dirname(url)}/version_built.properties`
                 ensure
                   `[ -f #{tmp_download_filename} ] && rm #{tmp_download_filename}`
                 end
