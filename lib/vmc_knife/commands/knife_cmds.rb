@@ -341,11 +341,18 @@ module VMC::Cli::Command
 
     def recipe_configuror(method_sym_name,recipes_regexp=nil,app_names_regexp=nil,service_names_regexp=nil,manifest_file_path=nil,opts=nil)
       man = load_manifest(manifest_file_path)
+
+      # login first
+      new_knife = VMC::Cli::Command::Knifemisc.new(@options)
+      new_knife.login(manifest_file_path)
+      client(new_knife.client)
+
+      raise VMC::Client::AuthError unless client.user || client.logged_in?
+
       recipes_regexp = as_regexp(recipes_regexp)
       app_names_regexp = as_regexp(app_names_regexp)
       opts ||= {}
       service_names_regexp = as_regexp(service_names_regexp, opts[:single_service])
-      raise VMC::Client::AuthError unless client.logged_in?
       configurer = VMC::KNIFE::RecipesConfigurationApplier.new(man, client,
                                                                recipes_regexp, app_names_regexp,
                                                                service_names_regexp, opts)
