@@ -215,11 +215,11 @@ module VMC::Cli::Command
     end
     def upload_applications(app_names_regexp=nil,manifest_file_path=nil)
       recipe_configuror(:upload,nil,app_names_regexp,nil,manifest_file_path,
-                        {:apps_only=>true, :force=>@options[:force]})
+                        {:apps_only=>true, :force=>@options[:force], :vmc_login => true})
     end
     def update_applications(app_names_regexp=nil,manifest_file_path=nil)
       recipe_configuror(:update,nil,app_names_regexp,nil,manifest_file_path,
-                        {:apps_only=>true, :force=>@options[:force]})
+                        {:apps_only=>true, :force=>@options[:force], :vmc_login => true})
     end
     def patch_applications(app_names_regexp=nil,manifest_file_path=nil)
       recipe_configuror(:patch,nil,app_names_regexp,nil,manifest_file_path,
@@ -231,15 +231,15 @@ module VMC::Cli::Command
     end
     def start_applications(app_names_regexp=nil,manifest_file_path=nil)
       recipe_configuror(:start,nil,app_names_regexp,nil,manifest_file_path,
-                        {:apps_only=>true})
+                        {:apps_only=>true, :vmc_login => true})
     end
     def stop_applications(app_names_regexp=nil,manifest_file_path=nil)
       recipe_configuror(:stop,nil,app_names_regexp,nil,manifest_file_path,
-                        {:apps_only=>true})
+                        {:apps_only=>true, :vmc_login => true})
     end
     def restart_applications(app_names_regexp=nil,manifest_file_path=nil)
       recipe_configuror(:restart,nil,app_names_regexp,nil,manifest_file_path,
-                        {:apps_only=>true})
+                        {:apps_only=>true, :vmc_login => true})
     end
     def info_applications(app_names_regexp=nil,manifest_file_path=nil)
       res=recipe_configuror(:info,nil,app_names_regexp,nil,manifest_file_path,
@@ -248,12 +248,12 @@ module VMC::Cli::Command
     end
     def wait_till_running_applications(app_names_regexp=nil,manifest_file_path=nil)
       res=recipe_configuror(:running_applications?,nil,app_names_regexp,nil,manifest_file_path,
-                        {:apps_only=>true, :wait=>{:interval=>30,:retries=>6}})
+                        {:apps_only=>true, :wait=>{:interval=>30,:retries=>6}, :vmc_login => true})
       exit 1 unless res
     end
     def running_applications?(app_names_regexp=nil,manifest_file_path=nil)
       res=recipe_configuror(:running_applications?,nil,app_names_regexp,nil,manifest_file_path,
-                        {:apps_only=>true})
+                        {:apps_only=>true, :vmc_login => true})
       exit 1 unless res
     end
     def info_configure(app_names_regexp=nil,manifest_file_path=nil)
@@ -262,15 +262,15 @@ module VMC::Cli::Command
       exit 1 unless res
     end
     def delete_all(app_names_regexp=nil,manifest_file_path=nil)
-      recipe_configuror(:delete,nil,app_names_regexp,nil,manifest_file_path)
+      recipe_configuror(:delete,nil,app_names_regexp,nil,manifest_file_path, {:vmc_login => true})
     end
     def delete_apps(app_names_regexp=nil,manifest_file_path=nil)
       recipe_configuror(:delete,nil,app_names_regexp,nil,manifest_file_path,
-                        {:apps_only=>true})
+                        {:apps_only=>true, :vmc_login => true})
     end
     def delete_data(services_names_regexp=nil,manifest_file_path=nil)
       recipe_configuror(:delete,nil,nil,services_names_regexp,manifest_file_path,
-                        {:data_only=>true})
+                        {:data_only=>true, :vmc_login => true})
     end
     def data_shell(data_names_regexp=nil,file_or_cmd=nil,app_name=nil,manifest_file_path=nil)
       file_name = nil
@@ -342,12 +342,14 @@ module VMC::Cli::Command
     def recipe_configuror(method_sym_name,recipes_regexp=nil,app_names_regexp=nil,service_names_regexp=nil,manifest_file_path=nil,opts=nil)
       man = load_manifest(manifest_file_path)
 
-      # login first
-      new_knife = VMC::Cli::Command::Knifemisc.new(@options)
-      new_knife.login(manifest_file_path)
-      client(new_knife.client)
-
-      raise VMC::Client::AuthError unless client.user || client.logged_in?
+      if (opts && opts[:vmc_login])
+        # login first
+        new_knife = VMC::Cli::Command::Knifemisc.new(@options)
+        new_knife.login(manifest_file_path)
+        client(new_knife.client)
+  
+        raise VMC::Client::AuthError unless client.user || client.logged_in?
+      end
 
       recipes_regexp = as_regexp(recipes_regexp)
       app_names_regexp = as_regexp(app_names_regexp)
