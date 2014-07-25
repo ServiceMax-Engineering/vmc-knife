@@ -517,11 +517,11 @@ module VMC
             application.log(File.join(output_folder, 'apps'))
           end
 
-          svc_dir = File.join(output_folder, 'services')
-          FileUtils.mkdir(svc_dir)
-          @data_services.each do | ds |
-            ds.log(svc_dir)
-          end
+#          svc_dir = File.join(output_folder, 'services')
+#          FileUtils.mkdir(svc_dir)
+#          @data_services.each do | ds |
+#            ds.log(svc_dir)
+#          end
 
         end
         if log_vcap
