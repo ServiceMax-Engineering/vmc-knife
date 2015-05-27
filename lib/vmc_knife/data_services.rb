@@ -30,13 +30,13 @@ module VMC
         
     def self.get_app_id(app_name)
        db=get_ccdb_credentials()
-       app_id = `psql --username #{db['username']} --dbname #{db['database']} -c \"select id from apps where name='#{app_name}'\" #{PSQL_RAW_RES_ARGS}`.strip
+       app_id = `export PGPASSWORD=#{db['password']}; psql --host #{db['host']} --port #{db['port']} --username #{db['username']} --dbname #{db['database']} -c \"select id from apps where name='#{app_name}'\" #{PSQL_RAW_RES_ARGS}`.strip
        app_id unless app_id.empty?
     end
     def self.get_service_config_id(service_name)
        db=get_ccdb_credentials()
        #todo add the user_id
-       service_config_id = `psql --username #{db['username']} --dbname #{db['database']} -c \"select id from service_configs where alias='#{service_name}'\" #{PSQL_RAW_RES_ARGS}`.strip
+       service_config_id = `export PGPASSWORD=#{db['password']}; psql --host #{db['host']} --port #{db['port']} --username #{db['username']} --dbname #{db['database']} -c \"select id from service_configs where alias='#{service_name}'\" #{PSQL_RAW_RES_ARGS}`.strip
        service_config_id unless service_config_id.empty?
     end
     
@@ -65,7 +65,7 @@ module VMC
     def self.get_credentials(service_name, app_name=nil)
        db=get_ccdb_credentials()
        if app_name.nil?
-         credentials_str = `psql --username #{db['username']} --dbname #{db['database']} -c \"select credentials from service_configs where alias='#{service_name}'\" #{PSQL_RAW_RES_ARGS}`.strip
+         credentials_str = `export PGPASSWORD=#{db['password']}; psql --host #{db['host']} --port #{db['port']} --username #{db['username']} --dbname #{db['database']} -c \"select credentials from service_configs where alias='#{service_name}'\" #{PSQL_RAW_RES_ARGS}`.strip
        else
          app_id = get_app_id(app_name)
 				 if app_id.nil?
@@ -73,7 +73,7 @@ module VMC
 					 return
 				 end
          service_config_id = get_service_config_id(service_name)
-         credentials_str = `psql --username #{db['username']} --dbname #{db['database']} -c \"select credentials from service_bindings where app_id = '#{app_id}' and service_config_id='#{service_config_id}'\" #{PSQL_RAW_RES_ARGS}`.strip
+         credentials_str = `export PGPASSWORD=#{db['password']}; psql --host #{db['host']} --port #{db['port']} --username #{db['username']} --dbname #{db['database']} -c \"select credentials from service_bindings where app_id = '#{app_id}' and service_config_id='#{service_config_id}'\" #{PSQL_RAW_RES_ARGS}`.strip
        end
        res = Hash.new
        credentials_str.split("\n").each do | line |
@@ -408,8 +408,9 @@ module VMC
           instance_name=creds['name']
           dbpath=File.join(base_dir, instance_name, 'data')            
           mongod_lock=File.join(dbpath,'mongod.lock')
-          puts "looking at #{mongod_lock} exists? #{File.exists?(mongod_lock)} size #{File.size(mongod_lock)}"
-          if File.exists?(mongod_lock) && File.size(mongod_lock)>0
+          hostname = creds['hostname']
+          puts "looking at #{mongod_lock} exists? #{File.exists?(mongod_lock)} size #{File.size(mongod_lock)}" if File.exists?(mongod_lock)
+          if (File.exists?(mongod_lock) && File.size(mongod_lock)>0) || (hostname != '127.0.0.1' &&  hostname != 'localhost')
             cmd = "#{mongodump_exec} -u #{creds['username']} -p #{creds['password']} --host #{creds['hostname']}:#{creds['port']} --db db"
           else
             cmd = "#{mongodump_exec} --dbpath #{dbpath}"
